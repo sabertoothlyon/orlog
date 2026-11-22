@@ -1,0 +1,719 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Orlog</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Uncial+Antiqua&display=swap" rel="stylesheet">
+<style>
+/* Layout: one centered column. Title, setup bar, status strip, opponent panel, controls card, your panel, rules drawer. */
+:root {
+  --display: 'Uncial Antiqua', 'Palatino Linotype', Georgia, serif;
+  --body: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --bg: #e5e9ec;
+  --fg: #151c21;
+  --muted: #55636b;
+  --panel: #f3f6f8;
+  --panel-line: #c1cad0;
+  --die: #efebde;
+  --die-line: #9a947e;
+  --ink: #1c2327;
+  --gold: #b9820a;
+  --gold-soft: rgba(185, 130, 10, 0.28);
+  --accent: #2a5f8f;
+  --accent-ink: #ffffff;
+  --hp: #a8372f;
+  --hp-off: #cbd2d7;
+  --good: #2c7a48;
+  --bad: #a8372f;
+  --focus: #2a5f8f;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0e1418;
+    --fg: #e2eaee;
+    --muted: #92a3ab;
+    --panel: #162027;
+    --panel-line: #2a3a43;
+    --die: #dcd7c6;
+    --die-line: #8a846f;
+    --ink: #161b1e;
+    --gold: #e2ad2c;
+    --gold-soft: rgba(226, 173, 44, 0.32);
+    --accent: #6fb3e0;
+    --accent-ink: #06121a;
+    --hp: #d2473e;
+    --hp-off: #2b3a43;
+    --good: #58c07f;
+    --bad: #e66a60;
+    --focus: #6fb3e0;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0e1418;
+  --fg: #e2eaee;
+  --muted: #92a3ab;
+  --panel: #162027;
+  --panel-line: #2a3a43;
+  --die: #dcd7c6;
+  --die-line: #8a846f;
+  --ink: #161b1e;
+  --gold: #e2ad2c;
+  --gold-soft: rgba(226, 173, 44, 0.32);
+  --accent: #6fb3e0;
+  --accent-ink: #06121a;
+  --hp: #d2473e;
+  --hp-off: #2b3a43;
+  --good: #58c07f;
+  --bad: #e66a60;
+  --focus: #6fb3e0;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--fg); font: 15px/1.5 var(--body); }
+main {
+  max-width: 680px;
+  margin: 0 auto;
+  padding-block: 20px 48px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+header h1 { margin: 0; font: 400 clamp(2.2rem, 8vw, 3.2rem)/1.05 var(--display); letter-spacing: 0.02em; }
+header p { margin: 6px 0 0; color: var(--muted); }
+
+.setup { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px 20px; }
+fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
+legend { padding: 0; margin-bottom: 6px; font-size: 0.72rem; letter-spacing: 0.09em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+.segrow { display: inline-flex; border: 1px solid var(--panel-line); border-radius: 8px; overflow: hidden; background: var(--panel); }
+.segrow input { position: absolute; opacity: 0; pointer-events: none; }
+.segrow label { padding: 8px 13px; cursor: pointer; font-weight: 500; font-size: 0.92rem; border-right: 1px solid var(--panel-line); user-select: none; }
+.segrow label:last-of-type { border-right: 0; }
+.segrow input:checked + label { background: var(--accent); color: var(--accent-ink); }
+.segrow input:focus-visible + label { outline: 2px solid var(--focus); outline-offset: -3px; }
+button.btn {
+  font: 600 0.92rem var(--body);
+  padding: 9px 16px;
+  border-radius: 8px;
+  border: 1px solid var(--panel-line);
+  background: var(--panel);
+  color: var(--fg);
+  cursor: pointer;
+}
+button.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+button.btn:disabled { opacity: 0.45; cursor: default; }
+button.btn:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+
+.status {
+  padding: 12px 14px;
+  border: 1px solid var(--panel-line);
+  border-radius: 10px;
+  background: var(--panel);
+}
+.status.over { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+#statusMain { font-weight: 600; font-size: 1.02rem; }
+#statusSub { color: var(--muted); font-size: 0.88rem; min-height: 1.3em; }
+
+/* player panels */
+.pl {
+  border: 1px solid var(--panel-line);
+  border-radius: 12px;
+  background: var(--panel);
+  padding: 12px 14px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.pl.active { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+.plhead { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 14px; }
+.plname { font-weight: 600; }
+.badge { font-size: 0.72rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); font-weight: 600; margin-left: 8px; }
+.vitals { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 16px; }
+.hp { display: flex; gap: 3px; align-items: center; }
+.hp i { width: 11px; height: 14px; border-radius: 3px 3px 5px 5px; background: var(--hp-off); display: block; }
+.hp i.on { background: var(--hp); }
+.hpnum { font-variant-numeric: tabular-nums; font-weight: 600; font-size: 0.9rem; min-width: 4.5ch; }
+.tok { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; font-variant-numeric: tabular-nums; font-size: 0.92rem; }
+.coin { width: 14px; height: 14px; border-radius: 50%; background: var(--gold); box-shadow: inset 0 0 0 2px var(--gold-soft); display: inline-block; }
+
+.dice { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; }
+.die {
+  position: relative;
+  aspect-ratio: 1;
+  min-width: 0;
+  width: 100%;
+  padding: 14%;
+  background: var(--die);
+  color: var(--ink);
+  border: 3px solid var(--die-line);
+  border-radius: 12px;
+  cursor: default;
+  font: inherit;
+  display: grid;
+  place-items: center;
+  box-shadow: 0 2px 3px rgba(0, 0, 0, 0.25);
+  -webkit-tap-highlight-color: transparent;
+}
+.die:disabled { opacity: 1; }
+.die svg { width: 100%; height: 100%; display: block; }
+.die.gold { border-color: var(--gold); box-shadow: inset 0 0 0 2px var(--gold-soft), 0 2px 3px rgba(0, 0, 0, 0.25); }
+.die.blank { opacity: 0.55; }
+.die.pick { cursor: pointer; }
+.die.pick:hover { transform: translateY(-2px); }
+.die.kept { outline: 3px solid var(--accent); outline-offset: 2px; }
+.die.kept::after {
+  content: "kept";
+  position: absolute;
+  left: 50%;
+  bottom: -19px;
+  transform: translateX(-50%);
+  font-size: 0.62rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--accent);
+  font-weight: 600;
+}
+.die:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+.die.rolling { animation: shake 0.14s linear infinite; }
+@keyframes shake {
+  0% { transform: rotate(-6deg) translateY(0); }
+  50% { transform: rotate(5deg) translateY(-3px); }
+  100% { transform: rotate(-6deg) translateY(0); }
+}
+@media (prefers-reduced-motion: reduce) { .die.rolling { animation: none; } }
+.diewrap { padding-bottom: 18px; }
+
+.tally { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 0.85rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+.tally span { display: inline-flex; align-items: center; gap: 5px; }
+.tally svg { width: 16px; height: 16px; color: var(--fg); }
+.tally b { color: var(--fg); }
+
+/* controls card */
+.ctl {
+  border: 1px solid var(--panel-line);
+  border-radius: 12px;
+  background: var(--panel);
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.ctl h2 { margin: 0; font-size: 1rem; }
+.ctl p { margin: 0; color: var(--muted); font-size: 0.92rem; }
+.btnrow { display: flex; flex-wrap: wrap; gap: 8px; }
+.gods { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
+.god {
+  text-align: left;
+  font: inherit;
+  color: var(--fg);
+  background: var(--bg);
+  border: 1px solid var(--panel-line);
+  border-radius: 10px;
+  padding: 9px 10px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+.god.on { border-color: var(--accent); box-shadow: inset 0 0 0 2px var(--accent); }
+.god:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.god b { font-size: 0.95rem; }
+.god em { font-style: normal; color: var(--muted); font-size: 0.78rem; letter-spacing: 0.06em; text-transform: uppercase; }
+.god span { font-size: 0.8rem; color: var(--muted); }
+.favrow { display: grid; grid-template-columns: 6.5rem repeat(3, minmax(0, 1fr)); gap: 6px; align-items: stretch; }
+.favname { font-weight: 600; align-self: center; font-size: 0.95rem; }
+.tier {
+  font: inherit;
+  font-size: 0.8rem;
+  line-height: 1.3;
+  color: var(--fg);
+  background: var(--bg);
+  border: 1px solid var(--panel-line);
+  border-radius: 8px;
+  padding: 7px 6px;
+  cursor: pointer;
+  min-width: 0;
+  text-align: left;
+}
+.tier b { display: block; font-size: 0.75rem; letter-spacing: 0.04em; color: var(--gold); }
+.tier.on { border-color: var(--accent); box-shadow: inset 0 0 0 2px var(--accent); }
+.tier:disabled { opacity: 0.4; cursor: default; }
+.tier:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+@media (max-width: 520px) {
+  .favrow { grid-template-columns: 1fr; }
+  .favname { margin-top: 4px; }
+}
+.lines { margin: 0; padding-left: 1.1em; display: flex; flex-direction: column; gap: 4px; font-size: 0.9rem; }
+.lines li.good { color: var(--good); }
+.lines li.bad { color: var(--bad); }
+
+details.rules { border: 1px solid var(--panel-line); border-radius: 10px; background: var(--panel); padding: 4px 14px; }
+details.rules summary { cursor: pointer; font-weight: 600; padding: 10px 0; }
+details.rules summary:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+details.rules ul { margin: 0 0 12px; padding-left: 1.2em; display: flex; flex-direction: column; gap: 6px; }
+details.rules p { margin: 0 0 12px; color: var(--muted); font-size: 0.9rem; }
+</style>
+
+<main>
+  <header>
+    <h1>Orlog</h1>
+    <p>The Viking dice game of fate. Reduce your rival's fifteen health stones to zero.</p>
+  </header>
+
+  <form class="setup" id="setup" onsubmit="return false">
+    <fieldset>
+      <legend>Opponent</legend>
+      <div class="segrow">
+        <input type="radio" name="mode" id="mode-ai" value="ai" checked><label for="mode-ai">Computer</label>
+        <input type="radio" name="mode" id="mode-two" value="two"><label for="mode-two">Second player</label>
+      </div>
+    </fieldset>
+    <fieldset id="fs-level">
+      <legend>Strength</legend>
+      <div class="segrow">
+        <input type="radio" name="level" id="lv-easy" value="easy"><label for="lv-easy">Easy</label>
+        <input type="radio" name="level" id="lv-med" value="medium" checked><label for="lv-med">Medium</label>
+        <input type="radio" name="level" id="lv-hard" value="hard"><label for="lv-hard">Hard</label>
+      </div>
+    </fieldset>
+    <button type="button" class="btn primary" id="newgame">New game</button>
+  </form>
+
+  <section class="status" id="statusBox" aria-live="polite">
+    <div id="statusMain"></div>
+    <div id="statusSub"></div>
+  </section>
+
+  <section class="pl" id="pl1"></section>
+  <section class="ctl" id="ctl"></section>
+  <section class="pl" id="pl0"></section>
+
+  <details class="rules">
+    <summary>How the game works</summary>
+    <ul>
+      <li>Each player has 15 health stones. Reduce your opponent to zero to win. If both fall together the round ends in a draw.</li>
+      <li><b>Roll phase.</b> Each player has six dice and up to three rolls a round, alternating turns. After a roll, tap dice to keep them. Kept dice are not rolled again.</li>
+      <li><b>Dice.</b> Axes deal melee damage and helmets block them. Arrows deal ranged damage and shields block them. Hands steal one favor token each. Dice with a gold border earn you one favor token each.</li>
+      <li><b>Favor phase.</b> Spend tokens to call on one god for the round, at one of three tiers. Both players choose before anything resolves.</li>
+      <li><b>Resolution.</b> Costs are paid, favors apply, then axes meet helmets, arrows meet shields, and hands steal tokens. Unspent tokens carry over. The roller order swaps every round.</li>
+    </ul>
+    <p>Each die has six faces: gold axe, axe, gold arrow, helmet, gold shield, hand. Favor costs and effects here are my own tuning, so they differ from the video game version.</p>
+  </details>
+</main>
+
+<script>
+// ==ENGINE-START==
+const Orlog = (function () {
+  const MAXHP = 15;
+  const FACES = [
+    { k: 'axe', g: 1 }, { k: 'axe', g: 0 }, { k: 'arrow', g: 1 },
+    { k: 'helmet', g: 0 }, { k: 'shield', g: 1 }, { k: 'hand', g: 0 }
+  ];
+  function pl(n, w) { return n + ' ' + w + (n === 1 ? '' : 's'); }
+  const GODS = {
+    thor:     { name: 'Thor',     title: 'Thunder',   cost: [4, 8, 12], val: [2, 5, 8], text: function (v) { return 'Deal ' + v + ' damage'; } },
+    idunn:    { name: 'Idunn',    title: 'Renewal',   cost: [4, 7, 10], val: [2, 4, 6], text: function (v) { return 'Heal ' + v; } },
+    vidar:    { name: 'Vidar',    title: 'Breaker',   cost: [3, 5, 7],  val: [1, 2, 3], text: function (v) { return 'Destroy ' + pl(v, 'enemy helmet') + ' and ' + pl(v, 'shield'); } },
+    ullr:     { name: 'Ullr',     title: 'Hunter',    cost: [2, 4, 6],  val: [1, 2, 3], text: function (v) { return 'Arrows ignore ' + pl(v, 'shield'); } },
+    heimdall: { name: 'Heimdall', title: 'Watchman',  cost: [3, 6, 9],  val: [1, 2, 3], text: function (v) { return 'Add ' + pl(v, 'helmet') + ' and ' + pl(v, 'shield'); } },
+    tyr:      { name: 'Tyr',      title: 'Oath',      cost: [3, 6, 9],  val: [1, 2, 3], text: function (v) { return 'Add ' + pl(v, 'axe'); } },
+    loki:     { name: 'Loki',     title: 'Trickster', cost: [3, 6, 9],  val: [1, 2, 3], text: function (v) { return 'Steal ' + pl(v, 'token'); } },
+    skadi:    { name: 'Skadi',    title: 'Winter',    cost: [3, 6, 9],  val: [1, 2, 3], text: function (v) { return 'Remove ' + pl(v, 'enemy axe'); } }
+  };
+  const GOD_IDS = Object.keys(GODS);
+  const ROMAN = ['I', 'II', 'III'];
+
+  function tally(faces) {
+    const c = { axe: 0, arrow: 0, helmet: 0, shield: 0, hand: 0, gold: 0 };
+    faces.forEach(function (f) {
+      if (f < 0) return;
+      const F = FACES[f]; c[F.k]++; if (F.g) c.gold++;
+    });
+    return c;
+  }
+  function clone(o) { return JSON.parse(JSON.stringify(o)); }
+
+  // s: { names, hp:[a,b], tok:[a,b], faces:[[6],[6]], picks:[{god,tier}|null, ...] }
+  function resolve(s) {
+    const nm = s.names || ['A', 'B'];
+    const hp = s.hp.slice(), tok = s.tok.slice(), lines = [];
+    const base = [tally(s.faces[0]), tally(s.faces[1])];
+    const e = clone(base), pk = s.picks;
+    function val(i) { return pk[i] ? GODS[pk[i].god].val[pk[i].tier] : 0; }
+    function is(i, g) { return pk[i] && pk[i].god === g ? val(i) : 0; }
+    [0, 1].forEach(function (i) {
+      if (!pk[i]) return;
+      const G = GODS[pk[i].god];
+      tok[i] -= G.cost[pk[i].tier];
+      lines.push({ t: nm[i] + ' favor: ' + G.name + ' ' + ROMAN[pk[i].tier] + '. ' + G.text(val(i)) + '.' });
+    });
+    const t0 = tok.slice();
+    [0, 1].forEach(function (i) {
+      const n = is(i, 'loki'); if (!n) return;
+      const st = Math.min(n, t0[1 - i]);
+      tok[1 - i] -= st; tok[i] += st;
+      lines.push({ t: nm[i] + ' steals ' + pl(st, 'token') + ' with Loki.' });
+    });
+    [0, 1].forEach(function (i) {
+      const j = 1 - i, sk = is(i, 'skadi'), vi = is(i, 'vidar');
+      if (sk) e[j].axe = Math.max(0, e[j].axe - sk);
+      if (vi) { e[j].helmet = Math.max(0, e[j].helmet - vi); e[j].shield = Math.max(0, e[j].shield - vi); }
+    });
+    const ign = [0, 0];
+    [0, 1].forEach(function (i) {
+      e[i].axe += is(i, 'tyr');
+      const h = is(i, 'heimdall'); e[i].helmet += h; e[i].shield += h;
+      ign[i] = is(i, 'ullr');
+    });
+    const dmg = [0, 0], heal = [0, 0];
+    [0, 1].forEach(function (i) {
+      const j = 1 - i;
+      const melee = Math.max(0, e[i].axe - e[j].helmet);
+      const sh = Math.max(0, e[j].shield - ign[i]);
+      const ranged = Math.max(0, e[i].arrow - sh);
+      const thor = is(i, 'thor');
+      dmg[j] += melee + ranged + thor;
+      heal[i] += is(i, 'idunn');
+      const parts = [];
+      parts.push('melee ' + melee + ' (' + pl(e[i].axe, 'axe') + ' vs ' + pl(e[j].helmet, 'helmet') + ')');
+      parts.push('ranged ' + ranged + ' (' + pl(e[i].arrow, 'arrow') + ' vs ' + pl(Math.max(0, e[j].shield - ign[i]), 'shield') + ')');
+      if (thor) parts.push('lightning ' + thor);
+      lines.push({ t: nm[i] + ' attack: ' + parts.join(', ') + '.', cls: melee + ranged + thor > 0 ? 'bad' : '' });
+    });
+    [0, 1].forEach(function (i) {
+      const before = hp[i];
+      hp[i] = Math.min(MAXHP, hp[i] + heal[i]);
+      if (heal[i]) lines.push({ t: nm[i] + ' heals ' + (hp[i] - before) + '.', cls: 'good' });
+    });
+    [0, 1].forEach(function (i) { hp[i] = hp[i] - dmg[i]; });
+    lines.push({ t: nm[0] + ' take ' + dmg[0] + ' damage. ' + nm[1] + ' take ' + dmg[1] + '.' });
+    const s0 = Math.min(e[0].hand, tok[1]), s1 = Math.min(e[1].hand, tok[0]);
+    tok[0] += s0 - s1; tok[1] += s1 - s0;
+    if (s0 || s1) lines.push({ t: 'Hands steal: ' + nm[0] + ' +' + s0 + ', ' + nm[1] + ' +' + s1 + ' tokens.' });
+    return { hp: hp, tok: tok, lines: lines, dmg: dmg, heal: heal };
+  }
+
+  const KEEP_THR = { medium: 1.9, hard: 2.3 };
+  function aiKeep(mine, opp, level, oppTok) {
+    if (level === 'easy') return mine.map(function (f) { return f >= 0 && Math.random() < 0.5; });
+    const t = tally(opp), m = tally(mine), thr = KEEP_THR[level] || 1.9;
+    return mine.map(function (f) {
+      if (f < 0) return false;
+      const F = FACES[f]; let s = 0;
+      if (F.k === 'axe' || F.k === 'arrow') s = 2;
+      else if (F.k === 'hand') s = 0.7 + (oppTok > 0 ? 0.5 : 0);
+      else if (F.k === 'helmet') s = t.axe > m.helmet ? 1.8 : 0.6;
+      else s = t.arrow > m.shield ? 1.8 : 0.6;
+      if (F.g) s += 0.8;
+      return s >= thr;
+    });
+  }
+
+  function aiFavor(s, p, level) {
+    function withPick(pick) { const c = clone(s); c.picks = [null, null]; c.picks[p] = pick; return c; }
+    function score(r) { return (r.hp[p] - r.hp[1 - p]) * 3 + (r.tok[p] - r.tok[1 - p]) * 0.4; }
+    const opts = [];
+    s.loadout[p].forEach(function (g) {
+      for (let t = 0; t < 3; t++) if (GODS[g].cost[t] <= s.tok[p]) opts.push({ god: g, tier: t });
+    });
+    if (!opts.length) return null;
+    if (level === 'easy') return Math.random() < 0.5 ? null : opts[(Math.random() * opts.length) | 0];
+    const baseScore = score(resolve(withPick(null)));
+    let best = null, bestS = baseScore + (level === 'hard' ? 1.5 : 1.0);
+    opts.forEach(function (o) {
+      const sc = score(resolve(withPick(o)));
+      if (sc > bestS) { bestS = sc; best = o; }
+    });
+    return best;
+  }
+
+  function randomLoadout() {
+    const a = GOD_IDS.slice();
+    for (let i = a.length - 1; i > 0; i--) { const j = (Math.random() * (i + 1)) | 0, t = a[i]; a[i] = a[j]; a[j] = t; }
+    return a.slice(0, 3);
+  }
+  return { MAXHP: MAXHP, FACES: FACES, GODS: GODS, GOD_IDS: GOD_IDS, ROMAN: ROMAN, tally: tally, resolve: resolve, aiKeep: aiKeep, aiFavor: aiFavor, randomLoadout: randomLoadout };
+})();
+// ==ENGINE-END==
+
+(function () {
+  const O = Orlog;
+  const $ = function (id) { return document.getElementById(id); };
+  let reduce = false;
+  try { reduce = matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) {}
+  const ICON = {
+    axe: '<svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 43 L31 9"/><path d="M27 12 C38 6 45 13 43 25 C38 20 31 20 25 23 Z" fill="currentColor"/></svg>',
+    arrow: '<svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 40 L34 14"/><path d="M42 6 L27 10 L38 21 Z" fill="currentColor"/><path d="M8 40 V30 M8 40 H18"/></svg>',
+    helmet: '<svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 29 C8 9 40 9 40 29 Z" fill="currentColor"/><path d="M6 29 H42"/><path d="M8 29 V41 H16 V29"/><path d="M40 29 V41 H32 V29"/><path d="M24 29 V40"/></svg>',
+    shield: '<svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="24" cy="24" r="17"/><circle cx="24" cy="24" r="5" fill="currentColor"/><path d="M24 7 V19 M24 29 V41 M7 24 H19 M29 24 H41"/></svg>',
+    hand: '<svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 24 V11 M22 22 V7 M29 22 V9 M36 26 V15"/><path d="M12 27 C11 43 38 45 38 28 V24 H12 Z" fill="currentColor"/><path d="M12 29 L6 23"/></svg>'
+  };
+  const FNAME = { axe: 'axe', arrow: 'arrow', helmet: 'helmet', shield: 'shield', hand: 'hand' };
+  function selected(n) { return document.querySelector('input[name=' + n + ']:checked').value; }
+  function pl(n, w) { return n + ' ' + w + (n === 1 ? '' : 's'); }
+
+  let G = null;
+  function mkPlayer() {
+    return { hp: O.MAXHP, tok: 0, loadout: [], dice: Array.from({ length: 6 }, function () { return { f: -1, keep: false }; }) };
+  }
+  function human(p) { return G.mode === 'two' || p === 0; }
+  function pname(p) { return G.mode === 'ai' ? (p === 0 ? 'You' : 'Computer') : 'Player ' + (p + 1); }
+  function activeP() { return G.seq[G.tp]; }
+  function rollNo() { return Math.floor(G.tp / 2) + 1; }
+  function faces(p) { return G.players[p].dice.map(function (d) { return d.f; }); }
+  function state() {
+    return {
+      names: [pname(0), pname(1)],
+      hp: [G.players[0].hp, G.players[1].hp],
+      tok: [G.players[0].tok, G.players[1].tok],
+      faces: [faces(0), faces(1)],
+      picks: G.picks.slice(),
+      loadout: [G.players[0].loadout, G.players[1].loadout]
+    };
+  }
+
+  function newGame() {
+    const prev = G;
+    G = {
+      mode: selected('mode'), level: selected('level'), phase: 'loadout', lp: 0, sel: [],
+      round: 0, starter: 1, summary: null, hand: null, seq: [], tp: 0, rolled: false, rolling: null,
+      picks: [null, null], fp: 0, fsel: null, winner: null, players: [mkPlayer(), mkPlayer()]
+    };
+    $('fs-level').hidden = G.mode !== 'ai';
+    if (prev) prev.dead = true;
+    render();
+  }
+
+  function confirmLoadout() {
+    const p = G.lp;
+    G.players[p].loadout = G.sel.slice(); G.sel = [];
+    if (G.mode === 'ai') { G.players[1].loadout = O.randomLoadout(); startRound(); return; }
+    if (p === 0) G.hand = { text: 'Player 1 has chosen. Pass the device to Player 2 to choose their gods.', cont: function () { G.lp = 1; } };
+    else G.hand = { text: 'Both loadouts are set. Pass the device back to Player 1 to begin.', cont: function () { startRound(); } };
+    render();
+  }
+
+  function startRound() {
+    G.round++; G.starter = 1 - G.starter;
+    G.players.forEach(function (p) { p.dice.forEach(function (d) { d.f = -1; d.keep = false; }); });
+    const s = G.starter;
+    G.seq = [s, 1 - s, s, 1 - s, s, 1 - s];
+    G.tp = 0; G.rolled = false; G.phase = 'roll'; G.picks = [null, null]; G.fsel = null; G.summary = null; G.fp = 0;
+    render(); tick();
+  }
+
+  function rollNow(done) {
+    const g = G, p = activeP(), d = g.players[p].dice, idx = [];
+    d.forEach(function (x, i) { if (!x.keep) idx.push(i); });
+    idx.forEach(function (i) { d[i].f = (Math.random() * 6) | 0; });
+    g.rolling = { p: p, set: idx };
+    function fin() {
+      if (G !== g) return;
+      g.rolling = null; g.rolled = true;
+      if (rollNo() === 3) d.forEach(function (x) { x.keep = true; });
+      render(); if (done) done();
+    }
+    if (reduce || !idx.length) { fin(); return; }
+    let n = 0;
+    const iv = setInterval(function () {
+      if (G !== g) { clearInterval(iv); return; }
+      n++; render();
+      if (n >= 7) { clearInterval(iv); fin(); }
+    }, 70);
+  }
+
+  function endTurn() {
+    G.tp++; G.rolled = false;
+    if (G.tp >= 6) toFavor(); else { render(); tick(); }
+  }
+
+  function tick() {
+    const g = G;
+    if (g.phase !== 'roll') return;
+    const p = activeP();
+    if (human(p)) return;
+    setTimeout(function () {
+      if (G !== g) return;
+      rollNow(function () {
+        setTimeout(function () {
+          if (G !== g) return;
+          if (rollNo() < 3) {
+            const k = O.aiKeep(faces(p), faces(1 - p), g.level, g.players[1 - p].tok);
+            k.forEach(function (v, i) { g.players[p].dice[i].keep = v; });
+          }
+          render();
+          setTimeout(function () { if (G === g) endTurn(); }, 550);
+        }, 600);
+      });
+    }, 500);
+  }
+
+  function toFavor() {
+    G.players.forEach(function (p) { p.gain = O.tally(p.dice.map(function (d) { return d.f; })).gold; p.tok += p.gain; });
+    G.phase = 'favor'; G.fp = 0; G.fsel = null;
+    if (G.mode === 'two') G.hand = { text: 'Rolling is done. Pass the device to Player 1 to choose a favor.', cont: function () {} };
+    render();
+  }
+
+  function confirmFavor(skip) {
+    G.picks[G.fp] = skip ? null : G.fsel; G.fsel = null;
+    if (G.mode === 'ai') { G.picks[1] = O.aiFavor(state(), 1, G.level); resolveRound(); return; }
+    if (G.fp === 0) {
+      G.hand = { text: 'Player 1 has chosen. Pass the device to Player 2 to choose a favor.', cont: function () { G.fp = 1; } };
+      render();
+    } else resolveRound();
+  }
+
+  function resolveRound() {
+    const r = O.resolve(state());
+    G.players[0].hp = r.hp[0]; G.players[1].hp = r.hp[1];
+    G.players[0].tok = r.tok[0]; G.players[1].tok = r.tok[1];
+    G.summary = r.lines;
+    if (r.hp[0] <= 0 || r.hp[1] <= 0) {
+      G.phase = 'over';
+      G.winner = r.hp[0] <= 0 && r.hp[1] <= 0 ? -1 : (r.hp[0] <= 0 ? 1 : 0);
+    } else G.phase = 'summary';
+    render();
+  }
+
+  function dieHTML(p, i) {
+    const d = G.players[p].dice[i];
+    const rolling = G.rolling && G.rolling.p === p && G.rolling.set.indexOf(i) >= 0;
+    const f = rolling ? (Math.random() * 6) | 0 : d.f;
+    const F = f >= 0 ? O.FACES[f] : null;
+    const canKeep = G.phase === 'roll' && G.rolled && !G.rolling && activeP() === p && human(p) && rollNo() < 3 && d.f >= 0;
+    const cls = 'die' + (F && F.g ? ' gold' : '') + (!F ? ' blank' : '') + (d.keep ? ' kept' : '') + (rolling ? ' rolling' : '') + (canKeep ? ' pick' : '');
+    const label = 'Die ' + (i + 1) + ', ' + (F ? (F.g ? 'gold ' : '') + FNAME[F.k] : 'not rolled') + (d.keep ? ', kept' : '');
+    return '<button type="button" class="' + cls + '" data-p="' + p + '" data-i="' + i + '"' + (canKeep ? ' aria-pressed="' + d.keep + '"' : ' disabled') + ' aria-label="' + label + '">' + (F ? ICON[F.k] : '') + '</button>';
+  }
+
+  function panelHTML(p) {
+    const P = G.players[p];
+    const act = G.phase === 'roll' && activeP() === p;
+    let pips = '';
+    for (let i = 0; i < O.MAXHP; i++) pips += '<i class="' + (i < P.hp ? 'on' : '') + '"></i>';
+    const c = O.tally(faces(p));
+    let dice = '';
+    for (let i = 0; i < 6; i++) dice += dieHTML(p, i);
+    const tallyHTML = ['axe', 'arrow', 'helmet', 'shield', 'hand'].map(function (k) {
+      return '<span>' + ICON[k] + '<b>' + c[k] + '</b></span>';
+    }).join('') + '<span><i class="coin"></i><b>' + c.gold + '</b> gold</span>';
+    return '<div class="plhead"><div><span class="plname">' + pname(p) + '</span>' +
+      (act ? '<span class="badge">' + (G.rolling ? 'Rolling' : 'Turn ' + rollNo() + ' of 3') + '</span>' : '') + '</div>' +
+      '<div class="vitals"><div class="hp" role="img" aria-label="' + pl(P.hp, 'health stone') + '">' + pips + '</div>' +
+      '<span class="hpnum">' + Math.max(0, P.hp) + ' / ' + O.MAXHP + '</span>' +
+      '<span class="tok"><i class="coin"></i>' + P.tok + ' tokens</span></div></div>' +
+      '<div class="diewrap"><div class="dice">' + dice + '</div></div>' +
+      '<div class="tally">' + tallyHTML + '</div>';
+  }
+
+  function godCard(id, on) {
+    const g = O.GODS[id];
+    return '<button type="button" class="god' + (on ? ' on' : '') + '" data-act="god" data-g="' + id + '" aria-pressed="' + on + '"><b>' + g.name + '</b><em>' + g.title + '</em><span>' + g.text(g.val[0]) + ' / ' + g.val[1] + ' / ' + g.val[2] + '</span></button>';
+  }
+
+  function linesHTML(arr) {
+    return '<ul class="lines">' + arr.map(function (l) { return '<li class="' + (l.cls || '') + '">' + l.t + '</li>'; }).join('') + '</ul>';
+  }
+
+  function controlsHTML() {
+    if (G.hand) return '<h2>Pass the device</h2><p>' + G.hand.text + '</p><div class="btnrow"><button type="button" class="btn primary" data-act="ready">I am ready</button></div>';
+    if (G.phase === 'loadout') {
+      const who = G.mode === 'ai' ? 'Choose your three gods' : pname(G.lp) + ': choose three gods';
+      return '<h2>' + who + '</h2><p>You can only call on gods in your loadout during the game. Each has three tiers, listed weakest to strongest.</p>' +
+        '<div class="gods">' + O.GOD_IDS.map(function (id) { return godCard(id, G.sel.indexOf(id) >= 0); }).join('') + '</div>' +
+        '<div class="btnrow"><button type="button" class="btn primary" data-act="loadout"' + (G.sel.length === 3 ? '' : ' disabled') + '>Confirm ' + G.sel.length + ' of 3</button></div>';
+    }
+    if (G.phase === 'roll') {
+      const p = activeP(), r = rollNo();
+      if (!human(p)) return '<h2>' + pname(p) + ' is rolling</h2><p>Roll ' + r + ' of 3.</p>';
+      let h = '<h2>' + pname(p) + ': roll ' + r + ' of 3</h2>';
+      if (!G.rolled) {
+        const allKept = G.players[p].dice.every(function (d) { return d.keep; });
+        h += '<p>' + (r === 1 ? 'Roll all six dice.' : 'Unkept dice will be rolled again.') + '</p><div class="btnrow"><button type="button" class="btn primary" data-act="roll">' + (allKept ? 'Pass, all dice kept' : 'Roll dice') + '</button></div>';
+      } else if (G.rolling) h += '<p>Rolling.</p>';
+      else if (r < 3) h += '<p>Tap dice to keep them, then pass. Kept dice stay for the next roll.</p><div class="btnrow"><button type="button" class="btn primary" data-act="end">Keep and pass</button></div>';
+      else h += '<p>Final roll. All dice are locked.</p><div class="btnrow"><button type="button" class="btn primary" data-act="end">Lock in</button></div>';
+      return h;
+    }
+    if (G.phase === 'favor') {
+      const p = G.fp, P = G.players[p];
+      let h = '<h2>' + pname(p) + ': choose a favor</h2><p>Tokens: ' + P.tok + ' (' + P.gain + ' earned this round). One favor per round. Your choice stays hidden until resolution.</p>';
+      P.loadout.forEach(function (id) {
+        const g = O.GODS[id];
+        h += '<div class="favrow"><div class="favname">' + g.name + '</div>';
+        for (let t = 0; t < 3; t++) {
+          const on = G.fsel && G.fsel.god === id && G.fsel.tier === t;
+          h += '<button type="button" class="tier' + (on ? ' on' : '') + '" data-act="fav" data-g="' + id + '" data-t="' + t + '"' + (g.cost[t] > P.tok ? ' disabled' : '') + '><b>' + O.ROMAN[t] + ', ' + g.cost[t] + ' tokens</b>' + g.text(g.val[t]) + '</button>';
+        }
+        h += '</div>';
+      });
+      h += '<div class="btnrow"><button type="button" class="btn primary" data-act="confirmfav"' + (G.fsel ? '' : ' disabled') + '>Confirm favor</button><button type="button" class="btn" data-act="skipfav">Skip favor</button></div>';
+      return h;
+    }
+    if (G.phase === 'summary') return '<h2>Round ' + G.round + ' resolved</h2>' + linesHTML(G.summary) + '<div class="btnrow"><button type="button" class="btn primary" data-act="next">Next round</button></div>';
+    if (G.phase === 'over') {
+      const t = G.winner === -1 ? 'Both fall together. Draw.' : pname(G.winner) + (G.mode === 'ai' && G.winner === 0 ? ' win.' : ' wins.');
+      return '<h2>' + t + '</h2>' + linesHTML(G.summary) + '<div class="btnrow"><button type="button" class="btn primary" data-act="again">Play again</button></div>';
+    }
+    return '';
+  }
+
+  function render() {
+    $('pl0').innerHTML = panelHTML(0);
+    $('pl1').innerHTML = panelHTML(1);
+    $('pl0').className = 'pl' + (G.phase === 'roll' && activeP() === 0 ? ' active' : '');
+    $('pl1').className = 'pl' + (G.phase === 'roll' && activeP() === 1 ? ' active' : '');
+    $('ctl').innerHTML = controlsHTML();
+    $('statusBox').className = 'status' + (G.phase === 'over' ? ' over' : '');
+    let main, sub = '';
+    if (G.phase === 'loadout') { main = 'Choose your gods'; sub = 'Pick three. They stay with you for the whole match.'; }
+    else if (G.phase === 'over') { main = G.winner === -1 ? 'Draw' : pname(G.winner) + (G.mode === 'ai' && G.winner === 0 ? ' win the match' : ' wins the match'); sub = 'Round ' + G.round; }
+    else {
+      main = 'Round ' + G.round;
+      const first = pname(G.starter);
+      if (G.phase === 'roll') sub = first + ' rolls first. Roll ' + rollNo() + ' of 3.';
+      else if (G.phase === 'favor') sub = 'Favor phase.';
+      else sub = 'Resolution.';
+    }
+    $('statusMain').textContent = main; $('statusSub').textContent = sub;
+  }
+
+  $('ctl').addEventListener('click', function (e) {
+    const b = e.target.closest('[data-act]');
+    if (!b || !G || b.disabled) return;
+    const a = b.dataset.act;
+    if (a === 'ready') { const h = G.hand; G.hand = null; h.cont(); render(); return; }
+    if (a === 'god') {
+      const id = b.dataset.g, k = G.sel.indexOf(id);
+      if (k >= 0) G.sel.splice(k, 1); else if (G.sel.length < 3) G.sel.push(id);
+      render(); return;
+    }
+    if (a === 'loadout') { confirmLoadout(); return; }
+    if (a === 'roll') { rollNow(); return; }
+    if (a === 'end') { endTurn(); return; }
+    if (a === 'fav') { G.fsel = { god: b.dataset.g, tier: +b.dataset.t }; render(); return; }
+    if (a === 'confirmfav') { confirmFavor(false); return; }
+    if (a === 'skipfav') { confirmFavor(true); return; }
+    if (a === 'next') { startRound(); return; }
+    if (a === 'again') { newGame(); return; }
+  });
+  function dieClick(e) {
+    const b = e.target.closest('.die.pick');
+    if (!b || !G) return;
+    const d = G.players[+b.dataset.p].dice[+b.dataset.i];
+    d.keep = !d.keep; render();
+  }
+  $('pl0').addEventListener('click', dieClick);
+  $('pl1').addEventListener('click', dieClick);
+  $('setup').addEventListener('change', newGame);
+  $('newgame').addEventListener('click', newGame);
+  newGame();
+})();
+</script>
+
+</body></html>
